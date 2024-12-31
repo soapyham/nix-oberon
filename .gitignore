@@ -1,0 +1,23 @@
+# Ignore Nix flake lock file if you don't want to pin dependencies
+# (Uncomment to ignore the lock file)
+# flake.lock
+
+# Build outputs and result symlinks
+/result
+/result-*
+
+# Nix-specific temporary directories
+/nix-store-paths
+
+# Logs and debugging outputs
+*.log
+*.tmp
+*.bak
+
+# Editor and system-specific files
+.DS_Store
+*.swp
+*.swo
+*~
+.idea/
+.vscode/
