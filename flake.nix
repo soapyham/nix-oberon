@@ -5,7 +5,7 @@
     nixpkgs.url = "github:nixos/nixpkgs/nixos-24.11";
   };
 
-  outputs = { self, nixpkgs }: {
+  outputs = { self, nixpkgs, ... }: {
     #nixpkgs.overlays = [ ./overylay.nix ];
 
     overlays.default = import ./overlay.nix;
