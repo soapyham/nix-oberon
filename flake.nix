@@ -10,8 +10,9 @@
 
     overlays.default = import ./overlay.nix;
 
-    nixosModules = {
-      default = import ./modules;
+    nixosModules = rec {
+      oberon = import ./modules;
+      default = oberon;
     };
   };
 }
