@@ -1,4 +1,5 @@
-final: prev {
+final:
+prev {
   oberon-governor = prev.callPackage ./packages/oberon-governor.nix { };
 
   mesa = prev.mesa.overrideAttrs (oldAttrs: {

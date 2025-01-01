@@ -2,17 +2,15 @@
 
 with lib;
 
-let cfg = config.modules.oberon-governor;
+let cfg = config.oberon-governor;
 in {
   options = {
-    modules = {
-      oberon-governor = {
-        enable = mkOption {
-          type = types.bool;
-          default = false;
-        };
-        package = mkPackageOption pkgs "oberon-governor" { };
+    oberon-governor = {
+      enable = mkOption {
+        type = types.bool;
+        default = false;
       };
+      package = mkPackageOption pkgs "oberon-governor" { };
     };
   };
 

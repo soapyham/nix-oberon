@@ -2,21 +2,21 @@
 
 with lib;
 
-
-let cfg = config.modules.oberon;
+let cfg = config.oberon;
 in {
   options = {
-    modules = {
-      oberon = {
-        enable = mkOption {
-          type = types.bool;
-          default = false;
-        };
+    oberon = {
+      enable = mkOption {
+        type = types.bool;
+        default = false;
       };
     };
   };
 
   config = mkIf cfg.enable {
+
+    options.oberon-governor.enable = true;
+
     environment.variables = {
       #RADV_DEBUG = "nocompute";
       RUSTICL_ENABLE = "radeonsi";
