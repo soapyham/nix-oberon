@@ -12,17 +12,11 @@ in {
           type = types.bool;
           default = false;
         };
-        governorEnable = mkOption {
-          type = types.bool;
-          default = false;
-        };
       };
     };
   };
 
   config = mkIf cfg.enable {
-    modules.oberon-governor.enable = true;
-
     environment.variables = {
       #RADV_DEBUG = "nocompute";
       RUSTICL_ENABLE = "radeonsi";
