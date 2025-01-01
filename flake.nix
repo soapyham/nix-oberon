@@ -12,8 +12,8 @@
 
     nixosModules = rec {
       oberon = import ./modules/oberon.nix;
+      oberon-governor = import ./modules/oberon-governor.nix;
       default = oberon;
-      #oberon-governor = import ./modules/oberon-governor.nix;
     };
   };
 }

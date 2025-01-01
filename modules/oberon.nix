@@ -2,6 +2,7 @@
 
 with lib;
 
+
 let cfg = config.modules.oberon;
 in {
   options = {
@@ -11,16 +12,15 @@ in {
           type = types.bool;
           default = false;
         };
+        governorEnable = mkOption {
+          type = types.bool;
+          default = false;
+        };
       };
     };
   };
 
   config = mkIf cfg.enable {
-
-    imports = [
-      ./oberon-governor.nix
-    ];
-
     modules.oberon-governor.enable = true;
 
     environment.variables = {
