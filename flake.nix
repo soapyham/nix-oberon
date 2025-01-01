@@ -11,9 +11,9 @@
     overlays.default = import ./overlay.nix;
 
     nixosModules = rec {
-      oberon = import ./modules/oberon.nix {};
-      oberon-governor = import ./modules/oberon-governor.nix {};
+      oberon = import ./modules/oberon.nix;
       default = oberon;
+      #oberon-governor = import ./modules/oberon-governor.nix;
     };
   };
 }

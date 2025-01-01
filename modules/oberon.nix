@@ -17,6 +17,10 @@ in {
 
   config = mkIf cfg.enable {
 
+    imports = [
+      ./oberon-governor.nix
+    ];
+
     modules.oberon-governor.enable = true;
 
     environment.variables = {
