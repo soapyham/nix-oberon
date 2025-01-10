@@ -1,0 +1,148 @@
+diff --git a/src/amd/addrlib/src/amdgpu_asic_addr.h b/src/amd/addrlib/src/amdgpu_asic_addr.h
+index b95f3ff7f84..4e2eed9c04d 100644
+--- a/src/amd/addrlib/src/amdgpu_asic_addr.h
++++ b/src/amd/addrlib/src/amdgpu_asic_addr.h
+@@ -94,6 +94,8 @@
+ #define AMDGPU_NAVI22_RANGE     0x32, 0x3C //# 50  <= x < 60
+ #define AMDGPU_NAVI23_RANGE     0x3C, 0x46 //# 60  <= x < 70
+ #define AMDGPU_NAVI24_RANGE     0x46, 0x50 //# 70  <= x < 80
++// NOTE: Not sure if this is a correct range. The only card I've seen is 132
++#define AMDGPU_CYAN_SKILLFISH_RANGE 0x84, 0x85 // 132 <= x < 133
+ 
+ #define AMDGPU_VANGOGH_RANGE    0x01, 0xFF //# 1 <= x < max
+ 
+diff --git a/src/amd/common/ac_gpu_info.c b/src/amd/common/ac_gpu_info.c
+index c4edfacbbd3..56608cdbaac 100644
+--- a/src/amd/common/ac_gpu_info.c
++++ b/src/amd/common/ac_gpu_info.c
+@@ -879,6 +879,7 @@ bool ac_query_gpu_info(int fd, void *dev_p, struct radeon_info *info,
+          identify_chip(NAVI22);
+          identify_chip(NAVI23);
+          identify_chip(NAVI24);
++         identify_chip(CYAN_SKILLFISH);
+          break;
+       case FAMILY_VGH:
+          identify_chip(VANGOGH);
+@@ -1273,7 +1274,7 @@ bool ac_query_gpu_info(int fd, void *dev_p, struct radeon_info *info,
+     */
+    info->has_accelerated_dot_product =
+       info->family == CHIP_VEGA20 ||
+-      (info->family >= CHIP_MI100 && info->family != CHIP_NAVI10);
++      (info->family >= CHIP_MI100 && info->family != CHIP_NAVI10 && info->family != CHIP_CYAN_SKILLFISH);
+ 
+    /* TODO: Figure out how to use LOAD_CONTEXT_REG on GFX6-GFX7. */
+    info->has_load_ctx_reg_pkt =
+@@ -1382,7 +1383,7 @@ bool ac_query_gpu_info(int fd, void *dev_p, struct radeon_info *info,
+    info->sdma_supports_sparse = info->sdma_ip_version >= SDMA_4_0;
+ 
+    /* SDMA v5.0+ (GFX10+) supports DCC and HTILE, but Navi 10 has issues with it according to PAL. */
+-   info->sdma_supports_compression = info->sdma_ip_version >= SDMA_5_0 && info->family != CHIP_NAVI10;
++   info->sdma_supports_compression = info->sdma_ip_version >= SDMA_5_0 && info->family != CHIP_NAVI10 && info->family != CHIP_CYAN_SKILLFISH;
+ 
+    /* Get the number of good compute units. */
+    info->num_cu = 0;
+@@ -1507,6 +1508,7 @@ bool ac_query_gpu_info(int fd, void *dev_p, struct radeon_info *info,
+       case CHIP_RENOIR:
+       case CHIP_NAVI10:
+       case CHIP_NAVI12:
++      case CHIP_CYAN_SKILLFISH:
+       case CHIP_NAVI21:
+       case CHIP_NAVI22:
+       case CHIP_NAVI23:
+@@ -1740,6 +1742,9 @@ bool ac_query_gpu_info(int fd, void *dev_p, struct radeon_info *info,
+       info->has_set_sh_pairs_packed = info->register_shadowing_required;
+    }
+ 
++   /* CYAN_SKILLFISH is GFX10 plus ray tracing instructions */
++   info->has_raytracing = info->gfx_level >= GFX10_3 || info->family == CHIP_CYAN_SKILLFISH
++
+    set_custom_cu_en_mask(info);
+ 
+    const char *ib_filename = debug_get_option("AMD_PARSE_IB", NULL);
+diff --git a/src/amd/common/ac_surface.c b/src/amd/common/ac_surface.c
+index 01705732c37..af070f9ee91 100644
+--- a/src/amd/common/ac_surface.c
++++ b/src/amd/common/ac_surface.c
+@@ -1763,7 +1763,7 @@ ASSERTED static bool is_dcc_supported_by_L2(const struct radeon_info *info,
+       return single_indep && valid_64b;
+    }
+ 
+-   if (info->family == CHIP_NAVI10) {
++   if (info->family == CHIP_NAVI10 || info->family == CHIP_CYAN_SKILLFISH) {
+       /* Only independent 128B blocks are supported. */
+       return single_indep && valid_128b;
+    }
+diff --git a/src/amd/common/amd_family.c b/src/amd/common/amd_family.c
+index ce401119496..176058273d8 100644
+--- a/src/amd/common/amd_family.c
++++ b/src/amd/common/amd_family.c
+@@ -86,6 +86,8 @@ const char *ac_get_family_name(enum radeon_family family)
+       return "VANGOGH";
+    case CHIP_NAVI24:
+       return "NAVI24";
++   case CHIP_CYAN_SKILLFISH:
++      return "CYAN_SKILLFISH";
+    case CHIP_REMBRANDT:
+       return "REMBRANDT";
+    case CHIP_RAPHAEL_MENDOCINO:
+@@ -223,6 +225,8 @@ const char *ac_get_llvm_processor_name(enum radeon_family family)
+       return "gfx1011";
+    case CHIP_NAVI14:
+       return "gfx1012";
++   case CHIP_CYAN_SKILLFISH:
++      return "gfx1013";
+    case CHIP_NAVI21:
+       return "gfx1030";
+    case CHIP_NAVI22:
+diff --git a/src/amd/common/amd_family.h b/src/amd/common/amd_family.h
+index 28bd3df3a56..af0becedaff 100644
+--- a/src/amd/common/amd_family.h
++++ b/src/amd/common/amd_family.h
+@@ -107,6 +107,8 @@ enum radeon_family
+    CHIP_NAVI10,         /* Radeon 5600, 5700 */
+    CHIP_NAVI12,         /* Radeon Pro 5600M */
+    CHIP_NAVI14,         /* Radeon 5300, 5500 */
++   /* GFX10.13 (RDNA 1?) */
++   CHIP_CYAN_SKILLFISH, /* PS5 APU, AMD BC-250 */
+    /* GFX10.3 (RDNA 2) */
+    CHIP_NAVI21,         /* Radeon 6800, 6900 (formerly "Sienna Cichlid") */
+    CHIP_NAVI22,         /* Radeon 6700 (formerly "Navy Flounder") */
+diff --git a/src/amd/compiler/aco_instruction_selection.cpp b/src/amd/compiler/aco_instruction_selection.cpp
+index abff5e82b0b..b60cce687d6 100644
+--- a/src/amd/compiler/aco_instruction_selection.cpp
++++ b/src/amd/compiler/aco_instruction_selection.cpp
+@@ -6218,7 +6218,7 @@ visit_bvh64_intersect_ray_amd(isel_context* ctx, nir_intrinsic_instr* instr)
+       node, tmax, origin, dir, inv_dir,
+    };
+ 
+-   if (bld.program->gfx_level == GFX10_3) {
++   if (bld.program->gfx_level <= GFX10_3) {
+       std::vector<Temp> scalar_args;
+       for (Temp tmp : args) {
+          for (unsigned i = 0; i < tmp.size(); i++)
+diff --git a/src/amd/compiler/aco_print_asm.cpp b/src/amd/compiler/aco_print_asm.cpp
+index 691be619415..b14699a7a34 100644
+--- a/src/amd/compiler/aco_print_asm.cpp
++++ b/src/amd/compiler/aco_print_asm.cpp
+@@ -128,6 +128,7 @@ to_clrx_device_name(amd_gfx_level gfx_level, radeon_family family)
+       switch (family) {
+       case CHIP_NAVI10: return "gfx1010";
+       case CHIP_NAVI12: return "gfx1011";
++      case CHIP_CYAN_SKILLFISH: return "gfx1013";
+       default: return nullptr;
+       }
+    default: return nullptr;
+diff --git a/src/amd/vulkan/winsys/null/radv_null_winsys.c b/src/amd/vulkan/winsys/null/radv_null_winsys.c
+index e0c0a04856a..8b734e0be41 100644
+--- a/src/amd/vulkan/winsys/null/radv_null_winsys.c
++++ b/src/amd/vulkan/winsys/null/radv_null_winsys.c
+@@ -135,7 +135,8 @@ radv_null_winsys_query_info(struct radeon_winsys *rws, struct radeon_info *gpu_i
+    gpu_info->has_image_load_dcc_bug = gpu_info->family == CHIP_NAVI23 || gpu_info->family == CHIP_VANGOGH;
+ 
+    gpu_info->has_accelerated_dot_product =
+-      gpu_info->family == CHIP_VEGA20 || (gpu_info->family >= CHIP_MI100 && gpu_info->family != CHIP_NAVI10);
++      gpu_info->family == CHIP_VEGA20 ||
++      (gpu_info->family >= CHIP_MI100 && gpu_info->family != CHIP_NAVI10 && gpu_info->family != CHIP_CYAN_SKILLFISH);
+ 
+    gpu_info->address32_hi = gpu_info->gfx_level >= GFX9 ? 0xffff8000u : 0x0;
+ 

@@ -1,0 +1,41 @@
+diff --git a/src/amd/common/ac_gpu_info.c b/src/amd/common/ac_gpu_info.c
+index c4edfacbbd3..fa4b41b4020 100644
+--- a/src/amd/common/ac_gpu_info.c
++++ b/src/amd/common/ac_gpu_info.c
+@@ -1740,6 +1740,8 @@ bool ac_query_gpu_info(int fd, void *dev_p, struct radeon_info *info,
+       info->has_set_sh_pairs_packed = info->register_shadowing_required;
+    }
+ 
++   info->has_raytracing = info->gfx_level >= GFX10_3;
++
+    set_custom_cu_en_mask(info);
+ 
+    const char *ib_filename = debug_get_option("AMD_PARSE_IB", NULL);
+diff --git a/src/amd/common/ac_gpu_info.h b/src/amd/common/ac_gpu_info.h
+index d55d73fab87..69bb1521b32 100644
+--- a/src/amd/common/ac_gpu_info.h
++++ b/src/amd/common/ac_gpu_info.h
+@@ -312,6 +312,10 @@ struct radeon_info {
+       uint32_t csa_alignment;
+    } fw_based_mcbp;
+    bool has_fw_based_shadowing;
++
++   /* Device supports hardware raytracing using
++    * image_bvh*_intersect_ray instructions */
++   bool has_raytracing;
+ };
+ 
+ bool ac_query_gpu_info(int fd, void *dev_p, struct radeon_info *info,
+diff --git a/src/amd/vulkan/radv_physical_device.c b/src/amd/vulkan/radv_physical_device.c
+index 2e6f1bffdf3..acfeee3268b 100644
+--- a/src/amd/vulkan/radv_physical_device.c
++++ b/src/amd/vulkan/radv_physical_device.c
+@@ -111,7 +111,7 @@ radv_filter_minmax_enabled(const struct radv_physical_device *pdev)
+ bool
+ radv_enable_rt(const struct radv_physical_device *pdev, bool rt_pipelines)
+ {
+-   if (pdev->info.gfx_level < GFX10_3 && !radv_emulate_rt(pdev))
++   if (!pdev->info.has_raytracing && !radv_emulate_rt(pdev))
+       return false;
+ 
+    if (rt_pipelines && pdev->use_llvm)

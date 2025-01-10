@@ -1,0 +1,16 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 35d5f6a..662a671 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -22,11 +22,3 @@ install(
+ 	TARGETS oberon-governor
+ 	DESTINATION "bin"
+ )
+-
+-# Service
+-configure_file(init/oberon-governor.service.in oberon-governor.service)
+-install(
+-	FILES "${CMAKE_CURRENT_BINARY_DIR}/oberon-governor.service"
+-	DESTINATION "/usr/lib/systemd/system"
+-	PERMISSIONS OWNER_READ OWNER_WRITE GROUP_READ WORLD_READ
+-)
