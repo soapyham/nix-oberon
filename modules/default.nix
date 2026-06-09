@@ -1,3 +1,10 @@
-{ config, pkgs, lib, ... }: {
-  imports = [ ./oberon.nix ./oberon-governor.nix ];
+{
+  self,
+  nixpkgs,
+  ...
+}: {
+  imports = [
+    ./oberon.nix
+    ./cyan-skillfish-governor.nix
+  ];
 }
